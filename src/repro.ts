@@ -4,6 +4,7 @@ import { canonical, runQuery, sha256, type QuerySpec } from './data.js';
 const jobs: { claim:string; spec:QuerySpec }[] = [
  {claim:'Top five transaction receiver accounts in NEAR mainnet blocks 130000000–130000001, AI Cloud report',spec:{source:'near-mainnet-archival-rpc',kind:'top_receivers',from_block:130000000,to_block:130000001}},
  {claim:'Action type counts in NEAR mainnet blocks 130000000–130000001, AI Cloud report',spec:{source:'near-mainnet-archival-rpc',kind:'action_counts',from_block:130000000,to_block:130000001}},
+ {claim:'Corrected action type counts in NEAR mainnet blocks 130000000–130000001, AI Cloud report',spec:{source:'near-mainnet-archival-rpc',kind:'action_counts',from_block:130000000,to_block:130000001}},
  {claim:'Function-call counts sent to intents.near in NEAR mainnet block 224547000',spec:{source:'near-intents-mainnet-rpc',kind:'contract_call_counts',from_block:224547000,to_block:224547000}}
 ];
 async function writeReport(id:number, claim:string, spec:QuerySpec, result:unknown, worker:string, tampered:boolean):Promise<string> {

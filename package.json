@@ -10,6 +10,7 @@
     "rebuild": "tsx src/rebuild.ts",
     "test:contract": "RUSTUP_HOME=$PWD/.local/rustup CARGO_HOME=$PWD/.local/cargo .local/cargo/bin/cargo test --manifest-path contract/Cargo.toml",
     "typecheck": "tsc --noEmit",
+    "test:data": "tsx --test src/data.test.ts",
     "build:contract": "RUSTUP_HOME=$PWD/.local/rustup CARGO_HOME=$PWD/.local/cargo .local/cargo/bin/cargo build --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release"
   },
   "dependencies": {

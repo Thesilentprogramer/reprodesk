@@ -17,6 +17,7 @@ Canonical result SHA-256: `293663fab8c54ddaa7ccebceb7b0b893b065cd25fda5a10be5915
 ## Job 1: action type counts, same mainnet blocks
 
 Canonical result SHA-256: `845499a36afb688dfcffa6d90c6e7494e409f409fd8b586ff089a4e2d1fff0fb`.
+This historical result used the buggy action parser: string-form `CreateAccount` actions appeared as `"0"`. [Corrected job 5](#job-5-corrected-action-type-counts) supersedes it.
 
 - [Poster funded 0.2 testNEAR](https://testnet.nearblocks.io/txns/e3oAKyAvToB9EXXZywyfw7oo8icyQZb3eAkHSJ5HxCD)
 - [Worker1 submitted](https://testnet.nearblocks.io/txns/58xvziokKedxzUD7JPpqsE4MyNR4j7MT8ehxWRogLXEE)
@@ -40,6 +41,7 @@ Canonical result SHA-256: `293663fab8c54ddaa7ccebceb7b0b893b065cd25fda5a10be5915
 ### Job 3: action type counts with AI commentary
 
 Canonical result SHA-256: `845499a36afb688dfcffa6d90c6e7494e409f409fd8b586ff089a4e2d1fff0fb`.
+This historical report also used the buggy `"0"` label and is superseded by [job 5](#job-5-corrected-action-type-counts).
 
 - [Poster funded 0.2 testNEAR](https://testnet.nearblocks.io/txns/znatE2b2kgKZtwgHYCfF9YeKJWjUH5qUuc9BtoLwkPC)
 - [Worker1 submitted](https://testnet.nearblocks.io/txns/6BFYsjm8gXTs3U2ngRcmzXJALF6sjBXxEqtZyXmKyq8B); [verifier accepted and paid](https://testnet.nearblocks.io/txns/6PXguJXQZEyPWS4PS8tmkGmBBpwaSakzr3icq72rWpa9)
@@ -54,4 +56,15 @@ The read-only archival RPC query found one transaction addressed to `intents.nea
 - [Worker1 submitted the reproducible result](https://testnet.nearblocks.io/txns/EYjHhdz5eaa2sEYBvbgZ3PaoHZyhCzkvKwgWughCLTMV); [verifier accepted and paid](https://testnet.nearblocks.io/txns/ctimpuvpnZcu8HX6HErjcBQ3xpdF1X6cgy1x3rPikCd)
 - Reports: [accurate worker](reports/4-worker1.md), [changed submission](reports/4-worker2.md). Rebuild with `npm run rebuild -- 4`.
 
-All five new report files contain NEAR AI Cloud commentary; each file's SHA-256 matches its submission's on-chain report hash. AI text is excluded from the deterministic result hashes above.
+All five job 2–4 report files contain NEAR AI Cloud commentary; each file's SHA-256 matches its submission's on-chain report hash. AI text is excluded from the deterministic result hashes above.
+
+### Job 5: corrected action type counts
+
+The archival RPC returns 15 actions as the plain string `"CreateAccount"`; object-form actions have a named key. The parser now handles both forms. For the same fixed mainnet blocks, the corrected rows are `AddKey: 15`, `CreateAccount: 15`, `Delegate: 90`, `FunctionCall: 44`, and `Transfer: 21`. Canonical result SHA-256: `f7288dc58d3645695296f9b3360a61a71533e742a47867a994ee32ec9357ebb6`.
+
+- [Poster funded 0.2 testNEAR](https://testnet.nearblocks.io/txns/2PGpZpgBfHfKvXfW1oY3jMkzEHJVCngGdYP5H7MDMbNB)
+- [Worker1 submitted the corrected result](https://testnet.nearblocks.io/txns/frnMvVb8nkcKZEUryzdaUvcmfq7MFCYed4UGY6AUtCi)
+- [Verifier independently rebuilt, accepted, and paid worker1](https://testnet.nearblocks.io/txns/AQhXy7C2GNf7UyPtCEeTQZ27DN2Pu2DKK9oYtFdt5xV)
+- [Corrected report with NEAR AI Cloud commentary](reports/5-worker1.md); on-chain report SHA-256: `7f050ebc550827046b18d48a6e6be8367f2cf4ce08ed44221f6accd8b76c8354`. Rebuild with `npm run rebuild -- 5`.
+
+Jobs 1 and 3 remain paid historical records, but their `"0"` action labels and result hashes are superseded by job 5. AI commentary remains outside the deterministic result hash.
