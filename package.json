@@ -1,0 +1,25 @@
+{
+  "name": "proofbounty",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "tsx src/setup.ts",
+    "deploy": "tsx src/deploy.ts",
+    "demo": "tsx src/demo.ts",
+    "typecheck": "tsc --noEmit",
+    "build:contract": "cd contract && cargo build --target wasm32-unknown-unknown --release"
+  },
+  "dependencies": {
+    "@agents-market/market": "^0.1.9",
+    "@defuse-protocol/one-click-sdk-typescript": "^0.1.26",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@nearai/near-mcp": "^0.0.35",
+    "dotenv": "^16.6.1",
+    "near-api-js": "^5.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}
