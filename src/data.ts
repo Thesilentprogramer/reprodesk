@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-export type QuerySpec = { source: 'near-mainnet-archival-rpc'; kind: 'top_receivers' | 'action_counts'; from_block: number; to_block: number };
+export type QuerySpec = { source: 'near-mainnet-archival-rpc'; kind: 'top_receivers' | 'action_counts'; from_block: number; to_block: number }
+  | { source: 'near-intents-mainnet-rpc'; kind: 'contract_call_counts'; from_block: number; to_block: number };
 export const canonical = (x: unknown): string => JSON.stringify(x, (_k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a],[b]) => a.localeCompare(b))) : v);
 export const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 const endpoint = process.env.MAINNET_ARCHIVAL_RPC || 'https://archival-rpc.mainnet.fastnear.com';
@@ -10,13 +11,17 @@ async function rpc(method: string, params: object): Promise<any> {
   }
 }
 export async function runQuery(spec: QuerySpec) {
-  if (spec.source !== 'near-mainnet-archival-rpc' || !['top_receivers','action_counts'].includes(spec.kind) || !Number.isInteger(spec.from_block) || !Number.isInteger(spec.to_block) || spec.to_block < spec.from_block || spec.to_block - spec.from_block > 3) throw Error('Unsupported query spec');
+  if (!Number.isInteger(spec.from_block) || !Number.isInteger(spec.to_block) || spec.to_block < spec.from_block || spec.to_block - spec.from_block > 3 || !(
+    (spec.source === 'near-mainnet-archival-rpc' && ['top_receivers', 'action_counts'].includes(spec.kind)) ||
+    (spec.source === 'near-intents-mainnet-rpc' && spec.kind === 'contract_call_counts')
+  )) throw Error('Unsupported query spec');
   const blocks = await Promise.all(Array.from({length:spec.to_block-spec.from_block+1},(_,i)=>rpc('block',{block_id:spec.from_block+i})));
   const chunks = await Promise.all(blocks.flatMap((b:any)=>b.chunks.map((c:any)=>rpc('chunk',{chunk_id:c.chunk_hash}))));
   const txs = chunks.flatMap((c:any)=>c.transactions || []);
   let rows: object[];
   if (spec.kind === 'top_receivers') { const counts = new Map<string,number>(); for (const tx of txs) counts.set(tx.receiver_id,(counts.get(tx.receiver_id)||0)+1); rows = [...counts].sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,5).map(([receiver_id,transactions])=>({receiver_id,transactions})); }
-  else { const counts = new Map<string,number>(); for (const tx of txs) for (const action of tx.actions) { const kind=Object.keys(action)[0]; counts.set(kind,(counts.get(kind)||0)+1); } rows=[...counts].sort((a,b)=>a[0].localeCompare(b[0])).map(([action,count])=>({action,count})); }
-  const result = { source: spec.source, kind: spec.kind, from_block:spec.from_block, to_block:spec.to_block, transaction_count:txs.length, rows };
+  else if (spec.kind === 'action_counts') { const counts = new Map<string,number>(); for (const tx of txs) for (const action of tx.actions) { const kind=Object.keys(action)[0]; counts.set(kind,(counts.get(kind)||0)+1); } rows=[...counts].sort((a,b)=>a[0].localeCompare(b[0])).map(([action,count])=>({action,count})); }
+  else { const counts = new Map<string,number>(); for (const tx of txs.filter((tx:any)=>tx.receiver_id === 'intents.near')) for (const action of tx.actions) if (action.FunctionCall) { const method=action.FunctionCall.method_name; counts.set(method,(counts.get(method)||0)+1); } rows=[...counts].sort((a,b)=>a[0].localeCompare(b[0])).map(([method,count])=>({method,count})); }
+  const result = { source: spec.source, kind: spec.kind, from_block:spec.from_block, to_block:spec.to_block, transaction_count:spec.source === 'near-intents-mainnet-rpc' ? txs.filter((tx:any)=>tx.receiver_id === 'intents.near').length : txs.length, rows };
   return { result, canonical_json:canonical(result), hash:sha256(canonical(result)) };
 }

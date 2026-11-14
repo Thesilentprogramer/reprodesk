@@ -5,7 +5,7 @@ export const sha256 = (value: string) => createHash('sha256').update(value).dige
 
 export async function reason(role: string, prompt: string): Promise<string> {
   const apiKey = required('NEAR_AI_API_KEY');
-  const model = process.env.NEAR_AI_MODEL || 'deepseek-ai/DeepSeek-V3.1';
+  const model = process.env.NEAR_AI_MODEL || 'deepseek/deepseek-v3.2';
   const response = await fetch('https://cloud-api.near.ai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },

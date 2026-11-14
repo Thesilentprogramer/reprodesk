@@ -7,7 +7,7 @@ async function main() {
   saveKey(parentId, parentKey);
   const chain = await connection([parentId], false);
   const parent = await chain.account(parentId);
-  const ids = [...roles.map(accountId), contractId];
+  const ids = [...roles.filter(role => role !== 'coordinator').map(accountId), contractId];
   for (const id of ids) {
     const envName = `NEAR_KEY_${id.split('.')[0].toUpperCase()}`;
     const key = process.env[envName] ? KeyPair.fromString(process.env[envName]) : KeyPair.fromRandom('ed25519');
