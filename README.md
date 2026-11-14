@@ -1,54 +1,37 @@
-# ProofBounty
+# ReproDesk
 
-ProofBounty is a five-agent task market on NEAR testnet. A requester treasury escrows testNEAR; two workers bid; a coordinator selects the cheapest bid; a reviewer checks a public JSON fact; and the contract pays the winner or refunds the treasury. Transactions, rather than a local simulation, are the demo state machine.
+ReproDesk is a NEAR testnet escrow marketplace for reproducible research about real NEAR mainnet data. A poster funds a claim. Worker agents run the committed query and submit a SHA-256 result hash. An independently keyed verifier reruns the historical query and submits its hash on-chain. An exact match pays the worker; a mismatch records a rejection. Open jobs can be refunded after their deadline.
 
-## Architecture
-
-| Role | Own testnet account | On-chain action |
-| --- | --- | --- |
-| Requester treasury | `requester.<parent>.testnet` | `post_task` with 0.3 testNEAR escrow |
-| Worker 1 | `worker1.<parent>.testnet` | bid 0.2 and submit SHA-256 result hash |
-| Worker 2 | `worker2.<parent>.testnet` | bid 0.25 and independently reason about source |
-| Reviewer | `reviewer.<parent>.testnet` | deterministic source check plus NEAR AI Cloud verdict, then `review` |
-| Coordinator | `coordinator.<parent>.testnet` | select lowest bid; use `@nearai/near-mcp` to sign `settle` |
-
-The Rust contract stores the task, bids, selected worker, result hash, review evidence hash, verdict and settlement flag. Successful settlement sends the bid amount to the worker and unused escrow to the requester. Rejection returns escrow to the requester. A second settlement fails. The contract pays with **testNEAR**, not NEAR Intents.
-
-NEAR AI Cloud handles independent worker extraction and reviewer judgment through its [OpenAI-compatible chat endpoint](https://docs.near.ai/api-reference/chat/create-chat-completion). The reviewer also compares exact strings to the fetched JSON value, so a model's mistaken acceptance cannot release the bounty. If inference fails, the demo throws; it never fabricates a worker result.
-
-## Setup
-
-Prerequisites: Node 20+, Rust with `wasm32-unknown-unknown`, a funded testnet parent account with at least roughly 7 testNEAR, and a NEAR AI Cloud API key. Keep all secret values in `.env` or `~/.near-credentials`; `.env.example` is the only environment file intended for Git.
-
-```sh
-cp .env.example .env
-# Fill NEAR_TESTNET_PARENT_ACCOUNT, NEAR_TESTNET_PARENT_PRIVATE_KEY, NEAR_AI_API_KEY.
-npm install
-rustup target add wasm32-unknown-unknown
-npm run build:contract
-npm run setup
-npm run deploy
-npm run demo
+```mermaid
+sequenceDiagram
+  participant P as Poster agent
+  participant C as NEAR escrow
+  participant W as Worker agent
+  participant V as Verifier agent
+  participant R as Mainnet archival RPC
+  P->>C: post_job(spec, claim, bounty)
+  W->>R: query fixed historical blocks
+  W->>C: submit(spec hash, result hash, report hash)
+  V->>R: independently rerun query
+  V->>C: verify(recomputed hash)
+  C-->>W: pay on exact match
+  C-->>C: otherwise reject submission
 ```
 
-`npm run setup` creates `contract`, `requester`, `worker1`, `worker2`, `reviewer`, and `coordinator` subaccounts under the parent. It saves private keys with mode 0600 in `~/.near-credentials/proofbounty`. Workers, reviewer and coordinator receive function-call access keys restricted to this contract and their own methods. The requester signs its deposit-bearing call with its full key because NEAR function-call keys cannot attach a deposit. `npm run deploy` deploys the WASM to the contract subaccount and initializes it. Rerunning setup reuses existing keys/accounts. `npm run demo` prints a testnet explorer link for each transaction and checks final on-chain state. The NEAR MCP server signs the settlement transaction with the coordinator account.
+## Run
 
-Run `npm run typecheck` and `cargo test --manifest-path contract/Cargo.toml` for local checks. For a machine without Rust in `PATH`, use a Rust installation in a custom `RUSTUP_HOME` and `CARGO_HOME`.
+Set `NEAR_TESTNET_PARENT_ACCOUNT` and `NEAR_TESTNET_PARENT_PRIVATE_KEY` in gitignored `.env`; `CONTRACT_ACCOUNT=reprodesk.proofbounty-38909.testnet`. Existing parent must hold testNEAR. `npm run repro` builds the Rust WASM, creates agent subaccounts if needed, deploys and initializes the contract, posts two jobs, and runs worker/verifier submissions. `npm run rebuild -- <job_id>` fetches the same fixed mainnet blocks and prints the canonical result and SHA-256 hash. `npm run typecheck` and `npm run test:contract` check the code. Open `web/index.html` to inspect on-chain jobs through testnet RPC.
 
-## External integrations
+Data queries fetch block and chunk contents from the public FastNEAR archival mainnet RPC for blocks 130000000–130000001. JSON keys are sorted recursively before hashing; ranked receiver rows have deterministic tie breaks. All mainnet calls are read only. `NEAR_AI_API_KEY` enables optional NEAR AI Cloud commentary. Without it, each report explicitly says it uses a deterministic template. The hash covers data results, never LLM text.
 
-- **Agent Market:** The official [market SDK](https://github.com/nearai/agents-market-sdk/blob/main/packages/market/README.md) supports service discovery and job creation. `src/market.ts` calls both when `POST_TO_AGENT_MARKET=true` and `NEAR_MARKET_API_KEY` is set. This creates a separate USDC marketplace job and is disabled by default; its payment is not the testnet escrow.
-- **NEAR Intents 1Click:** `src/intents.ts` uses the [1Click SDK](https://github.com/defuse-protocol/one-click-sdk-typescript) only when `ENABLE_MAINNET_INTENTS=true`. It requests a live quote, prompts for an operator-executed mainnet deposit transaction hash (or reads `ONE_CLICK_DEPOSIT_TX_HASH`), submits it, and polls until `SUCCESS`, `REFUNDED`, or `FAILED`. It does not sign a mainnet deposit itself. This optional leg is separate from testnet settlement. Do not enable it without reviewing the asset, amount, refund and recipient.
-- **NEAR MCP:** The [official server](https://github.com/nearai/near-mcp) imports the coordinator key from the local credential file and signs the real contract `settle` call. The demo discovers required MCP tools at runtime and fails if unavailable.
+## NEAR technology
 
-## Track fit
+Rust `near-sdk` testnet contract, payable escrow, registered verifier account, NEP-297 style event logs, testnet subaccounts and signed transactions, read-only historical mainnet JSON-RPC, optional NEAR AI Cloud write-up.
 
-| Track | Implemented evidence |
-| --- | --- |
-| AI Swarms | Five accounts coordinate on-chain bidding, selection, review and payout. |
-| Agent Economy | Workers compete for a priced job; optional real Agent Market publishing/discovery hook. |
-| Autonomous Business | Requester treasury posts a narrow task, escrows its budget and receives unused funds or a refund. |
+## Deployed demo
 
-The current public source is `https://jsonplaceholder.typicode.com/todos/1`, field `title`. Override `SOURCE_URL` and `SOURCE_FIELD` for another JSON object with a scalar field. Worker output and review evidence are hashed on-chain; the CLI prints the full worker outputs locally. A trusted reviewer remains a limit of this design; hashes prove what was committed, not independent model execution.
+Contract: `reprodesk.proofbounty-38909.testnet`. Actual transaction links are recorded in [DEMO.md](DEMO.md).
 
-See [BLOCKERS.md](BLOCKERS.md) for required external credentials and [PROGRESS.md](PROGRESS.md) for verified status.
+## Limits
+
+Verification is independent at the agent/account level, but the contract trusts the registered verifier to have rerun the query; it checks submitted hashes and cannot itself fetch mainnet RPC data. This demo uses two fixed short block ranges and public RPC availability affects rebuilds. Reports are local Markdown with on-chain SHA-256 hashes, not pinned IPFS CIDs. A rejected submission keeps the escrow open for another worker until the deadline.

@@ -24,15 +24,20 @@ export function credentialPath(id: string, scoped = false): string {
   return path.join(credentialDir, `${id}${scoped ? '.function' : ''}.json`);
 }
 
-export function saveKey(id: string, key: KeyPair, scoped = false): void {
-  fs.mkdirSync(credentialDir, { recursive: true, mode: 0o700 });
-  fs.writeFileSync(credentialPath(id, scoped), JSON.stringify({ account_id: id, public_key: key.getPublicKey().toString(), private_key: key.toString() }), { mode: 0o600 });
+function keyName(id: string): string { return id === parentId ? 'NEAR_TESTNET_PARENT_PRIVATE_KEY' : `NEAR_KEY_${id.split('.')[0].toUpperCase()}`; }
+export function saveKey(id: string, key: KeyPair): void {
+  const name = keyName(id);
+  if (process.env[name] === key.toString()) return;
+  const filename = path.join(process.cwd(), '.env');
+  const lines = fs.readFileSync(filename, 'utf8').split('\n').filter(line => !line.startsWith(`${name}=`));
+  lines.push(`${name}=${key.toString()}`);
+  fs.writeFileSync(filename, lines.filter(Boolean).join('\n') + '\n', { mode: 0o600 });
+  process.env[name] = key.toString();
 }
-
-export function loadKey(id: string, scoped = false): KeyPair {
-  const filename = credentialPath(id, scoped);
-  if (!fs.existsSync(filename)) throw new Error(`Missing local credential ${filename}. Run npm run setup.`);
-  return KeyPair.fromString(JSON.parse(fs.readFileSync(filename, 'utf8')).private_key);
+export function loadKey(id: string, _scoped = false): KeyPair {
+  const value = process.env[keyName(id)];
+  if (!value) throw new Error(`Missing ${keyName(id)} in .env; run npm run setup`);
+  return KeyPair.fromString(value);
 }
 
 export async function connection(ids: string[], scoped = true) {
@@ -42,7 +47,7 @@ export async function connection(ids: string[], scoped = true) {
 }
 
 export async function call(role: Role, methodName: string, args: object, deposit = '0') {
-  const nearConnection = await connection([accountId(role)], role !== 'requester');
+  const nearConnection = await connection([accountId(role)], false);
   const signer = await nearConnection.account(accountId(role));
   const result = await signer.functionCall({ contractId, methodName, args, gas: BigInt('100000000000000'), attachedDeposit: BigInt(deposit) });
   if (result.status && typeof result.status === 'object' && 'Failure' in result.status) throw new Error(`${methodName} failed: ${JSON.stringify(result.status)}`);

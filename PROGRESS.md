@@ -1,25 +1,9 @@
-# Progress — 13 Nov 2026
+# ReproDesk progress
 
-## Built
-
-- Rust NEAR escrow contract: task posting with attached deposit; competing bids; cheapest-bid selection; result hash; reviewer verdict; payout/refund and one-time settlement.
-- Five-role TypeScript testnet account setup with local 0600 credential storage and scoped function-call keys where deposits do not require a full key.
-- NEAR AI Cloud worker/reviewer calls, exact-value acceptance check, real near-api-js signed calls, NEAR MCP settlement call, optional Agent Market and mainnet 1Click adapters.
-- One-command `npm run demo` orchestration and explorer links for its on-chain calls.
-- `npm run typecheck` passes; three Rust unit tests pass; the release WASM builds (232 KB).
-- A live local NEAR MCP server handshake exposes `system_import_account` and `contract_call_raw_function`.
-
-## Transaction hashes
-
-None. No funded testnet parent account or NEAR AI Cloud key was available, so deployment and the real transaction path could not be run. No testnet execution is claimed.
-
-## Incomplete or unverified
-
-- No deployed contract or end-to-end transaction verification yet.
-- Agent Market hook is implemented but unrun without an API key; no job was posted.
-- Mainnet 1Click quote/deposit status code is implemented but unrun and requires a separately signed deposit. No mainnet spend occurred.
-- No dashboard; the CLI is the demo surface.
-
-## Next
-
-Provide the two required credentials in `.env`, run `npm run setup`, `npm run deploy`, then `npm run demo`. Capture every printed testnet hash here and verify the winner balance change. Restore Git write access and make the three small commits. The deadline is 14 Nov 2026 at 23:59 UTC.
+- 2026-11-14 22:45 IST: Inspected existing escrow, signing, and test setup; confirmed archival mainnet RPC responds for historical block 130000000.
+- 2026-11-14 22:47 IST: Implemented ReproDesk contract jobs, submissions, verifier hash comparison, payout/refund, views, events, and unit tests.
+- 2026-11-14 22:49 IST: Added canonical historical mainnet RPC queries and rebuild CLI; configured new testnet contract account.
+- 2026-11-14 22:52 IST: Contract unit tests (3) and TypeScript typecheck pass; added RPC-only static dashboard. Live build and deployment underway.
+- 2026-11-14 22:56 IST: Created testnet agent and contract accounts; deployed and initialized ReproDesk. Deployment required a 4.2 testNEAR storage top-up, and posting required a 0.5 testNEAR requester top-up. Corrected fresh setup funding levels.
+- 2026-11-14 23:01 IST: Live job 0 posted; worker2 tampered submission rejected, worker1 accurate submission paid. Live job 1 posted and worker1 paid. Switched historical reads to FastNEAR archival after old NEAR archival endpoint returned a deprecation error. Generated keys moved to gitignored .env and credential file copies removed. Transaction ledger saved in DEMO.md.
+- 2026-11-14 23:02 IST: `npm run rebuild -- 0` reproduced the exact paid result hash; final `npm run typecheck` and three contract tests passed. Recorded optional NEAR AI Cloud HTTP 401 fallback and omitted adapters in BLOCKERS.md.

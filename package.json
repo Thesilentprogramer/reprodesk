@@ -6,8 +6,11 @@
     "setup": "tsx src/setup.ts",
     "deploy": "tsx src/deploy.ts",
     "demo": "tsx src/demo.ts",
+    "repro": "npm run build:contract && npm run setup && npm run deploy && tsx src/repro.ts",
+    "rebuild": "tsx src/rebuild.ts",
+    "test:contract": "RUSTUP_HOME=$PWD/.local/rustup CARGO_HOME=$PWD/.local/cargo .local/cargo/bin/cargo test --manifest-path contract/Cargo.toml",
     "typecheck": "tsc --noEmit",
-    "build:contract": "cd contract && cargo build --target wasm32-unknown-unknown --release"
+    "build:contract": "RUSTUP_HOME=$PWD/.local/rustup CARGO_HOME=$PWD/.local/cargo .local/cargo/bin/cargo build --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release"
   },
   "dependencies": {
     "@agents-market/market": "^0.1.9",
